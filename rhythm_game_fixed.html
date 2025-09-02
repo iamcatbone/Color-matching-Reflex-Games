@@ -1,0 +1,1310 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rhythm Symbol Game</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: 'Courier New', monospace;
+            background: linear-gradient(135deg, #1a1a2e, #16213e);
+            color: white;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .game-container {
+            max-width: 800px;
+            width: 100%;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            backdrop-filter: blur(10px);
+        }
+
+        .score, .inputs-count {
+            font-size: 1.2em;
+            font-weight: bold;
+            flex: 1;
+        }
+
+        .score-section {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+        }
+
+        .multiplier {
+            font-size: 1em;
+            font-weight: bold;
+            color: white;
+            margin-top: 5px;
+            transition: all 0.3s ease;
+        }
+
+        .timer-section {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            flex: 1;
+            position: relative;
+        }
+
+        .timer {
+            font-size: 1.5em;
+            font-weight: bold;
+            color: #ffd700;
+            margin-bottom: 8px;
+        }
+
+        .timer.warning {
+            color: #ff4757;
+            animation: pulse 0.5s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .timer-bar-container {
+            width: 200px;
+            height: 12px;
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 6px;
+            overflow: hidden;
+            border: 2px solid rgba(255, 255, 255, 0.4);
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: -1;
+            opacity: 0.7;
+        }
+
+        .timer-bar {
+            height: 100%;
+            background: linear-gradient(90deg, rgba(78, 205, 196, 0.8), rgba(69, 183, 209, 0.8), rgba(255, 215, 0, 0.8));
+            border-radius: 4px;
+            transition: width 0.1s linear;
+            box-shadow: 0 0 15px rgba(255, 215, 0, 0.4);
+        }
+
+        .timer-bar.warning {
+            background: linear-gradient(90deg, rgba(255, 71, 87, 0.8), rgba(255, 107, 107, 0.8), rgba(255, 165, 2, 0.8));
+            animation: barPulse 0.5s infinite;
+        }
+
+        .queue-container {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 20px;
+            position: relative;
+        }
+
+        .queue-rows {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .queue-rows.four-columns {
+            max-width: 800px;
+        }
+
+        .queue-row {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            height: 50px;
+        }
+
+        .queue-row.four-columns .queue-slot {
+            max-width: 120px;
+        }
+
+        .queue-slot {
+            flex: 1;
+            max-width: 150px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 2px dashed rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            font-size: 1.5em;
+            font-weight: bold;
+            transition: all 0.3s ease;
+        }
+
+        .queue-slot.empty {
+            background: transparent;
+        }
+
+        .queue-slot.filled {
+            border: 2px solid transparent;
+        }
+
+        .queue-slot.current {
+            transform: scale(1.05);
+            border: 3px solid white !important;
+            box-shadow: 0 0 20px rgba(255, 255, 255, 0.6);
+            animation: glow 1s infinite;
+        }
+
+        @keyframes glow {
+            0%, 100% { box-shadow: 0 0 15px rgba(255, 255, 255, 0.5); }
+            50% { box-shadow: 0 0 25px rgba(255, 255, 255, 0.8); }
+        }
+
+        .column-headers {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin-bottom: 15px;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .column-headers.four-columns {
+            max-width: 800px;
+        }
+
+        .column-header {
+            flex: 1;
+            max-width: 150px;
+            text-align: center;
+            padding: 10px;
+            border-radius: 8px;
+            font-weight: bold;
+            font-size: 1.1em;
+        }
+
+        .column-header.four-columns {
+            max-width: 120px;
+        }
+
+        .column-header.star { background: rgba(255, 107, 107, 0.3); }
+        .column-header.triangle { background: rgba(78, 205, 196, 0.3); }
+        .column-header.square { background: rgba(69, 183, 209, 0.3); }
+
+        .queue-item {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            width: 100%;
+            border-radius: 8px;
+            font-size: 1.5em;
+            font-weight: bold;
+            transition: all 0.3s ease;
+        }
+
+        .star { background: linear-gradient(135deg, #ff6b6b, #ff8e8e); }
+        .triangle { background: linear-gradient(135deg, #4ecdc4, #7fdbda); }
+        .square { background: linear-gradient(135deg, #45b7d1, #6cc5e0); }
+
+        .controls {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .key-hint {
+            padding: 15px 20px;
+            border-radius: 10px;
+            font-weight: bold;
+            font-size: 1.1em;
+            min-width: 80px;
+            text-align: center;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .key-hint.star { background: rgba(255, 107, 107, 0.3); }
+        .key-hint.triangle { background: rgba(78, 205, 196, 0.3); }
+        .key-hint.square { background: rgba(69, 183, 209, 0.3); }
+
+        .key-hint.pressed {
+            transform: scale(0.95);
+            background: rgba(255, 255, 255, 0.4);
+        }
+
+        .penalty-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+            flex-direction: column;
+        }
+
+        .penalty-content {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .penalty-emoji {
+            font-size: 8em;
+            position: relative;
+            opacity: 0.75;
+        }
+
+        .penalty-counter {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 0.6em;
+            font-weight: bold;
+            color: #FFFF00;
+            z-index: 1;
+        }
+
+        .penalty-circle {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 1.2em;
+            height: 1.2em;
+            border: 0.05em solid rgba(255, 255, 255, 0.5);
+            border-radius: 50%;
+            z-index: 0;
+        }
+
+        .penalty-instruction {
+            font-size: 1.2em;
+            color: white;
+            text-align: center;
+            max-width: 400px;
+        }
+
+        .penalty-resume {
+            font-size: 1.2em;
+            color: #ffd700;
+            text-align: center;
+            max-width: 400px;
+            font-weight: bold;
+        }
+
+        @keyframes barPulse {
+            0%, 100% { 
+                box-shadow: 0 0 10px rgba(255, 71, 87, 0.7);
+                opacity: 1;
+            }
+            50% { 
+                box-shadow: 0 0 20px rgba(255, 71, 87, 1);
+                opacity: 0.8;
+            }
+        }
+
+        .game-over {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        .game-over-content {
+            background: rgba(20, 20, 50, 0.95);
+            padding: 40px;
+            border-radius: 20px;
+            text-align: center;
+            border: 2px solid #ffd700;
+        }
+
+        .game-over h2 {
+            color: #ff4757;
+            font-size: 2.5em;
+            margin-bottom: 20px;
+        }
+
+        .final-score {
+            font-size: 1.5em;
+            color: #ffd700;
+            margin-bottom: 20px;
+        }
+
+        .restart-btn {
+            background: linear-gradient(135deg, #45b7d1, #6cc5e0);
+            border: none;
+            padding: 15px 30px;
+            border-radius: 10px;
+            color: white;
+            font-size: 1.2em;
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        .restart-btn:hover {
+            transform: scale(1.05);
+        }
+
+        .start-screen {
+            text-align: center;
+            padding: 40px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            margin-top: 50px;
+        }
+
+        .start-btn {
+            background: linear-gradient(135deg, #4ecdc4, #7fdbda);
+            border: none;
+            padding: 20px 40px;
+            border-radius: 15px;
+            color: white;
+            font-size: 1.5em;
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 0.2s;
+            margin-top: 20px;
+        }
+
+        .start-btn:hover {
+            transform: scale(1.05);
+        }
+
+        .instructions {
+            text-align: left;
+            margin: 20px 0;
+            line-height: 1.6;
+        }
+
+        .countdown {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.9);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1500;
+        }
+
+        .countdown-number {
+            font-size: 20em;
+            font-weight: bold;
+            color: #ffd700;
+            text-shadow: 0 0 50px rgba(255, 215, 0, 0.8);
+            animation: countdownPulse 1s ease-in-out;
+            text-align: center;
+            width: 100%;
+            max-width: 600px;
+        }
+
+        @keyframes countdownPulse {
+            0% {
+                transform: scale(0.5);
+                opacity: 0;
+            }
+            50% {
+                transform: scale(1.2);
+                opacity: 1;
+            }
+            100% {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+
+        .event-popup {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.9);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+        }
+
+        .event-content {
+            background: rgba(20, 20, 50, 0.95);
+            padding: 40px;
+            border-radius: 20px;
+            text-align: center;
+            border: 3px solid #ffd700;
+            max-width: 500px;
+        }
+
+        .event-content h2 {
+            color: #ffd700;
+            font-size: 2em;
+            margin-bottom: 20px;
+        }
+
+        .event-description {
+            font-size: 1.2em;
+            color: white;
+            margin-bottom: 30px;
+            line-height: 1.5;
+        }
+
+        .event-ok-btn {
+            background: linear-gradient(135deg, #ffd700, #ffed4e);
+            border: none;
+            padding: 15px 30px;
+            border-radius: 10px;
+            color: #000;
+            font-size: 1.2em;
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        .event-ok-btn:hover {
+            transform: scale(1.05);
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <div id="startScreen" class="start-screen">
+            <h1>🎵 Rhythm Symbol Game</h1>
+            <div class="instructions">
+                <h3>How to Play:</h3>
+                <p>• Match symbols with keyboard keys: <strong>H</strong> for ⭐, <strong>J</strong> for 🔺, <strong>K</strong> for ⬜</p>
+                <p>• You start with 10 seconds on the timer</p>
+                <p>• Timer counts down continuously</p>
+                <p>• +0.3s added for each correct input</p>
+                <p>• Wrong inputs trigger penalty mode</p>
+                <p>• Game ends after 2 consecutive wrong inputs or time runs out</p>
+            </div>
+            <button class="start-btn" onclick="startGame()" id="startBtn">Start Game</button>
+        </div>
+
+        <div id="gameScreen" style="display: none;">
+            <div class="header">
+                <div class="score-section">
+                    <div class="score">Score: <span id="score">0</span></div>
+                    <div class="multiplier" id="multiplier" style="display: none;">1.0x</div>
+                </div>
+                <div class="timer-section">
+                    <div class="timer" id="timer">10.0s</div>
+                    <div class="timer-bar-container">
+                        <div class="timer-bar" id="timerBar"></div>
+                    </div>
+                </div>
+                <div class="inputs-count">Inputs: <span id="inputsCount">0</span></div>
+            </div>
+
+            <div class="controls">
+                <div class="key-hint star" id="keyH">H - ⭐</div>
+                <div class="key-hint triangle" id="keyJ">J - 🔺</div>
+                <div class="key-hint square" id="keyK">K - ⬜</div>
+                <select id="eventSelector" style="margin-left: 20px; padding: 10px; background: #333; color: white; border: 1px solid #666; border-radius: 5px;">
+                    <option value="">Select Event to Test</option>
+                    <option value="h_clear_hj">H Super Clear</option>
+                    <option value="any_clear_all">Universal Clear</option>
+                    <option value="double_clear">Double Clear</option>
+                    <option value="input_swap">Input Swap</option>
+                    <option value="animals">Animal Mode</option>
+                    <option value="double_input">Double Input</option>
+                    <option value="k_clear_jk">K Super Clear</option>
+                    <option value="score_depress">Score Depress</option>
+                    <option value="bonus_score">Score Boost</option>
+                    <option value="basic_game">Basic Game</option>
+                </select>
+                <button onclick="testEvent()" style="margin-left: 10px; padding: 10px; background: blue; color: white; border: none; border-radius: 5px;">TEST EVENT</button>
+            </div>
+
+            <div class="queue-container">
+                <div class="queue-rows">
+                    <div id="queueRows"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="penalty-overlay" id="penaltyOverlay">
+        <div class="penalty-content">
+            <div class="penalty-emoji">
+                💩
+                <div class="penalty-circle"></div>
+                <div class="penalty-counter" id="penaltyCounter">5</div>
+            </div>
+            <div class="penalty-instruction" id="penaltyInstruction">
+                Hit H, J or K to beat the 💩 counter to 0
+            </div>
+        </div>
+    </div>
+
+    <div class="event-popup" id="eventPopup">
+        <div class="event-content">
+            <h2>🎊 Special Event! 🎊</h2>
+            <div class="event-description" id="eventDescription"></div>
+            <button class="event-ok-btn" onclick="closeEventPopup()" id="eventOkBtn">OK - Let's Go!</button>
+        </div>
+    </div>
+
+    <div class="countdown" id="countdown">
+        <div class="countdown-number" id="countdownNumber">3</div>
+    </div>
+
+    <div class="game-over" id="gameOver">
+        <div class="game-over-content">
+            <h2>Game Over!</h2>
+            <div class="final-score">Final Score: <span id="finalScore">0</span></div>
+            <div id="gameOverReason"></div>
+            <button class="restart-btn" onclick="restartGame()" id="restartBtn">Play Again</button>
+        </div>
+    </div>
+
+    <!-- Audio element for background music -->
+    <audio id="bgMusic" loop preload="auto" style="display: none;">
+        <source src="your-music-file.mp3" type="audio/mpeg">
+        <source src="your-music-file.ogg" type="audio/ogg">
+        <!-- Replace "your-music-file" with the actual filename you downloaded -->
+    </audio>
+
+    <script>
+        class RhythmGame {
+            constructor() {
+                this.symbols = ['star', 'triangle', 'square'];
+                this.animalSymbols = ['cat', 'frog', 'dog', 'fox'];
+                this.symbolMap = {
+                    'star': '⭐',
+                    'triangle': '🔺', 
+                    'square': '⬜'
+                };
+                this.animalSymbolMap = {
+                    'cat': '🐱',
+                    'frog': '🐸',
+                    'dog': '🐶',
+                    'fox': '🦊'
+                };
+                this.keyMap = {
+                    'h': 'star',
+                    'j': 'triangle',
+                    'k': 'square'
+                };
+                this.animalKeyMap = {
+                    'h': 'cat',
+                    'j': 'frog',
+                    'k': 'dog',
+                    'u': 'fox'
+                };
+                
+                this.queue = [];
+                this.score = 0;
+                this.inputsCount = 0;
+                this.consecutiveWrong = 0;
+                this.maxTime = 10000; // 10 seconds in ms
+                this.currentTime = this.maxTime;
+                this.timer = null;
+                this.gameRunning = false;
+                this.lastEventScore = 0;
+                
+                // Penalty system
+                this.penaltyActive = false;
+                this.penaltyCounter = 0;
+                this.penaltyAwaitingResume = false;
+                
+                // Event system
+                this.currentEvent = null;
+                this.lastEvent = null;
+                this.secondLastEvent = null;
+                this.doubleInputChance = 0.5; // Store the double input chance for consistency
+                this.events = [
+                    { id: 'h_clear_hj', description: 'H Super Clear! H clears both H & J blocks. J key is disabled!' },
+                    { id: 'any_clear_all', description: 'Any button clears all blocks!' },
+                    { id: 'double_clear', description: 'Each input clears two blocks' },
+                    { id: 'input_swap', description: 'Input Swap! H clears K column, K clears H column!' },
+                    { id: 'animals', description: '4-column Animal Mode! 🐱🐸🐶🦊 - Use H, J, K, U keys! 1.5x time bonus!' },
+                    { id: 'double_input', description: 'Double Input! 30-80% of blocks have yellow outlines and need double-tap to clear!' },
+                    { id: 'k_clear_jk', description: 'K Super Clear! K clears both J & K blocks. J key is disabled!' },
+                    { id: 'score_depress', description: 'Score Depression! Base score reduced by 20% (8 points)!' },
+                    { id: 'bonus_score', description: 'Score Boost! Base score increased by 20% (12 points)!' },
+                    { id: 'basic_game', description: 'Game reverted to basic mode!' }
+                ];
+                this.doubleInputRequired = {};
+                
+                // Audio setup
+                this.bgMusic = document.getElementById('bgMusic');
+                this.musicEnabled = false;
+                
+                this.initializeGame();
+                this.bindEvents();
+            }
+
+            initializeGame() {
+                this.queue = [];
+                for (let i = 0; i < 10; i++) {
+                    const symbol = this.getRandomSymbol();
+                    const item = {
+                        symbol: symbol,
+                        id: Math.random()
+                    };
+                    
+                    if (this.currentEvent === 'double_input' && Math.random() < 0.3) {
+                        item.requiresDoubleInput = true;
+                    }
+                    
+                    this.queue.push(item);
+                }
+                this.renderQueue();
+            }
+
+            getRandomSymbol() {
+                if (this.currentEvent === 'animals') {
+                    const symbol = this.animalSymbols[Math.floor(Math.random() * this.animalSymbols.length)];
+                    console.log('Generated animal symbol:', symbol);
+                    return symbol;
+                }
+                const symbol = this.symbols[Math.floor(Math.random() * this.symbols.length)];
+                console.log('Generated normal symbol:', symbol);
+                return symbol;
+            }
+
+            getCurrentSymbolMap() {
+                if (this.currentEvent === 'animals') {
+                    return this.animalSymbolMap;
+                }
+                return this.symbolMap;
+            }
+
+            getCurrentKeyMap() {
+                if (this.currentEvent === 'input_swap') {
+                    return {
+                        'h': 'square',
+                        'j': 'triangle',
+                        'k': 'star'
+                    };
+                } else if (this.currentEvent === 'animals') {
+                    return this.animalKeyMap;
+                }
+                return this.keyMap;
+            }
+
+            renderQueue() {
+                const queueContainer = document.getElementById('queueRows');
+                const symbolMap = this.getCurrentSymbolMap();
+                
+                queueContainer.innerHTML = '';
+
+                const headersDiv = document.createElement('div');
+                headersDiv.className = 'column-headers';
+                
+                let columnOrder, headerLabels, headerClasses;
+                
+                if (this.currentEvent === 'animals') {
+                    columnOrder = ['cat', 'frog', 'dog', 'fox'];
+                    headerLabels = ['H - 🐱', 'J - 🐸', 'K - 🐶', 'U - 🦊'];
+                    headerClasses = ['star', 'triangle', 'square', 'star'];
+                } else if (this.currentEvent === 'input_swap') {
+                    columnOrder = ['star', 'triangle', 'square'];
+                    headerLabels = ['K - ⭐', 'J - 🔺', 'H - ⬜'];
+                    headerClasses = ['star', 'triangle', 'square'];
+                } else {
+                    columnOrder = ['star', 'triangle', 'square'];
+                    headerLabels = ['H - ⭐', 'J - 🔺', 'K - ⬜'];
+                    headerClasses = ['star', 'triangle', 'square'];
+                }
+
+                headerLabels.forEach((label, index) => {
+                    const header = document.createElement('div');
+                    header.className = `column-header ${headerClasses[index]}`;
+                    header.textContent = label;
+                    headersDiv.appendChild(header);
+                });
+                
+                queueContainer.appendChild(headersDiv);
+                
+                for (let i = 0; i < 10; i++) {
+                    const row = document.createElement('div');
+                    row.className = 'queue-row';
+                    
+                    const numColumns = (this.currentEvent === 'animals') ? 4 : 3;
+                    
+                    for (let j = 0; j < numColumns; j++) {
+                        const slot = document.createElement('div');
+                        slot.className = 'queue-slot';
+                        
+                        const currentItem = this.queue[i];
+                        const expectedSymbolForThisSlot = columnOrder[j];
+                            
+                        if (currentItem && currentItem.symbol === expectedSymbolForThisSlot) {
+                            slot.classList.add('filled');
+                            if (i === 0) slot.classList.add('current');
+                            
+                            const item = document.createElement('div');
+                            let className = `queue-item ${currentItem.symbol}`;
+                            
+                            if (currentItem.requiresDoubleInput && !this.doubleInputRequired[currentItem.id]) {
+                                item.style.border = '3px solid #FFFF00';
+                                item.style.borderRadius = '8px';
+                            }
+                            
+                            item.className = className;
+                            item.textContent = symbolMap[currentItem.symbol];
+                            item.setAttribute('data-id', currentItem.id);
+                            slot.appendChild(item);
+                        } else {
+                            slot.classList.add('empty');
+                        }
+                        
+                        row.appendChild(slot);
+                    }
+                    
+                    queueContainer.appendChild(row);
+                }
+            }
+
+            startTimer() {
+                this.currentTime = this.maxTime;
+                this.updateTimerDisplay();
+                
+                this.timer = setInterval(() => {
+                    this.currentTime -= 100;
+                    this.updateTimerDisplay();
+                    
+                    if (this.currentTime <= 0) {
+                        // If in penalty mode, end penalty first
+                        if (this.penaltyActive) {
+                            this.endPenalty();
+                        }
+                        this.endGame('Time\'s up!');
+                    }
+                }, 100);
+            }
+
+            updateTimerDisplay() {
+                const timerElement = document.getElementById('timer');
+                const timerBarElement = document.getElementById('timerBar');
+                const seconds = (this.currentTime / 1000).toFixed(1);
+                timerElement.textContent = seconds + 's';
+                
+                const percentage = (this.currentTime / 10000) * 100;
+                timerBarElement.style.width = Math.max(0, percentage) + '%';
+                
+                if (this.currentTime <= 3000) {
+                    timerElement.classList.add('warning');
+                    timerBarElement.classList.add('warning');
+                } else {
+                    timerElement.classList.remove('warning');
+                    timerBarElement.classList.remove('warning');
+                }
+            }
+
+            processInput(key) {
+                console.log('Processing input:', key, 'Game running:', this.gameRunning, 'Penalty active:', this.penaltyActive);
+                
+                // Handle penalty mode
+                if (this.penaltyActive) {
+                    console.log('In penalty mode, key pressed:', key);
+                    
+                    // If waiting for space to resume
+                    if (this.penaltyAwaitingResume) {
+                        if (key === ' ') {
+                            console.log('Space pressed - resuming game');
+                            this.endPenalty();
+                        }
+                        return;
+                    }
+                    
+                    // Normal penalty countdown
+                    if (['h', 'j', 'k'].includes(key)) {
+                        this.penaltyCounter--;
+                        console.log('Penalty counter decreased to:', this.penaltyCounter);
+                        document.getElementById('penaltyCounter').textContent = this.penaltyCounter;
+                        
+                        if (this.penaltyCounter <= 0) {
+                            console.log('Penalty counter reached 0, awaiting space to resume');
+                            this.penaltyAwaitingResume = true;
+                            document.getElementById('penaltyInstruction').textContent = 'Press SPACE to resume gameplay';
+                            document.getElementById('penaltyInstruction').className = 'penalty-resume';
+                        }
+                    }
+                    return;
+                }
+                
+                if (!this.gameRunning) return;
+                
+                const currentItem = this.queue[0];
+                if (!currentItem) return;
+                
+                console.log('Current block:', currentItem.symbol, 'Key pressed:', key, 'Current event:', this.currentEvent);
+                
+                this.showKeyPress(key);
+                
+                // Determine if input is correct based on current event
+                let isCorrect = false;
+                let clearedItems = 0;
+                
+                if (this.currentEvent === 'animals') {
+                    console.log('In animal mode - checking animal input');
+                    // Animal mode: H=cat, J=frog, K=dog, U=fox
+                    if ((currentItem.symbol === 'cat' && key === 'h') ||
+                        (currentItem.symbol === 'frog' && key === 'j') ||
+                        (currentItem.symbol === 'dog' && key === 'k') ||
+                        (currentItem.symbol === 'fox' && key === 'u')) {
+                        console.log('Animal mode - correct input detected');
+                        isCorrect = true;
+                        clearedItems = 1;
+                    } else {
+                        console.log('Animal mode - wrong input for symbol:', currentItem.symbol, 'key:', key);
+                    }
+                } else if (this.currentEvent === 'any_clear_all') {
+                    // Any key clears any block
+                    isCorrect = true;
+                    clearedItems = 1;
+                } else if (this.currentEvent === 'h_clear_hj') {
+                    // H clears both stars and triangles, J is disabled, K works normally
+                    if (key === 'h' && (currentItem.symbol === 'star' || currentItem.symbol === 'triangle')) {
+                        isCorrect = true;
+                        clearedItems = 1;
+                    } else if (key === 'k' && currentItem.symbol === 'square') {
+                        isCorrect = true;
+                        clearedItems = 1;
+                    }
+                    // Note: J key does nothing in this event
+                } else if (this.currentEvent === 'k_clear_jk') {
+                    // K clears both triangles and squares, J is disabled, H works normally
+                    if (key === 'k' && (currentItem.symbol === 'triangle' || currentItem.symbol === 'square')) {
+                        isCorrect = true;
+                        clearedItems = 1;
+                    } else if (key === 'h' && currentItem.symbol === 'star') {
+                        isCorrect = true;
+                        clearedItems = 1;
+                    }
+                    // Note: J key does nothing in this event
+                } else if (this.currentEvent === 'double_clear') {
+                    // Check if correct key for current block
+                    if ((currentItem.symbol === 'star' && key === 'h') ||
+                        (currentItem.symbol === 'triangle' && key === 'j') ||
+                        (currentItem.symbol === 'square' && key === 'k')) {
+                        isCorrect = true;
+                        clearedItems = 2; // Clear current and next block
+                    }
+                } else if (this.currentEvent === 'double_input') {
+                    // Check if correct key for current block
+                    if ((currentItem.symbol === 'star' && key === 'h') ||
+                        (currentItem.symbol === 'triangle' && key === 'j') ||
+                        (currentItem.symbol === 'square' && key === 'k')) {
+                        
+                        if (currentItem.requiresDoubleInput) {
+                            if (!this.doubleInputRequired[currentItem.id]) {
+                                // First tap - don't clear yet, but give time bonus
+                                this.doubleInputRequired[currentItem.id] = 1;
+                                this.currentTime = Math.min(10000, this.currentTime + 300);
+                                this.renderQueue(); // Remove yellow outline
+                                console.log('Double input - first tap registered');
+                                return; // Don't clear block yet
+                            } else {
+                                // Second tap - clear block
+                                isCorrect = true;
+                                clearedItems = 1;
+                                delete this.doubleInputRequired[currentItem.id];
+                                console.log('Double input - second tap, clearing block');
+                            }
+                        } else {
+                            // Normal block - clear immediately
+                            isCorrect = true;
+                            clearedItems = 1;
+                        }
+                    }
+                } else if (this.currentEvent === 'input_swap') {
+                    // Swapped controls: H clears squares, K clears stars, J clears triangles
+                    if ((currentItem.symbol === 'square' && key === 'h') ||
+                        (currentItem.symbol === 'triangle' && key === 'j') ||
+                        (currentItem.symbol === 'star' && key === 'k')) {
+                        isCorrect = true;
+                        clearedItems = 1;
+                    }
+                } else {
+                    // Normal mode: H clears stars, J clears triangles, K clears squares
+                    if ((currentItem.symbol === 'star' && key === 'h') ||
+                        (currentItem.symbol === 'triangle' && key === 'j') ||
+                        (currentItem.symbol === 'square' && key === 'k')) {
+                        isCorrect = true;
+                        clearedItems = 1;
+                    }
+                }
+                
+                console.log('Is correct input:', isCorrect, 'Items to clear:', clearedItems);
+                
+                if (isCorrect && clearedItems > 0) {
+                    console.log('Correct input - processing');
+                    this.consecutiveWrong = 0;
+                    this.inputsCount++;
+                    
+                    // Add time bonus - 1.5x for animal mode
+                    let timeBonus = 300; // Normal 0.3s bonus
+                    if (this.currentEvent === 'animals') {
+                        timeBonus = 450; // 1.5x bonus (0.45s) for animal mode
+                        console.log('Animal mode - 1.5x time bonus applied');
+                    }
+                    this.currentTime = Math.min(10000, this.currentTime + timeBonus);
+                    
+                    // Remove specified number of blocks and add new ones
+                    for (let i = 0; i < clearedItems && this.queue.length > 0; i++) {
+                        console.log(`Clearing block ${i + 1} of ${clearedItems}`);
+                        this.queue.shift();
+                        
+                        const newItem = {
+                            symbol: this.getRandomSymbol(),
+                            id: Math.random()
+                        };
+                        
+                        // FIXED: Apply double input requirement for new blocks during double input event
+                        if (this.currentEvent === 'double_input' && Math.random() < 0.3) {
+                            newItem.requiresDoubleInput = true;
+                            console.log('New replacement block will require double input');
+                        }
+                        
+                        this.queue.push(newItem);
+                    }
+                    
+                    this.score += 10 * clearedItems;
+                    
+                    if (Math.floor(this.score / 1000) > Math.floor(this.lastEventScore / 1000)) {
+                        this.triggerEvent();
+                        return;
+                    }
+                    
+                    this.renderQueue();
+                    this.updateScore();
+                } else {
+                    console.log('Wrong input - triggering penalty');
+                    this.startPenalty();
+                    this.consecutiveWrong++;
+                    if (this.consecutiveWrong >= 2) {
+                        this.endGame('Two consecutive wrong inputs!');
+                    }
+                }
+            }
+
+            showKeyPress(key) {
+                const keyElement = document.getElementById(`key${key.toUpperCase()}`);
+                if (keyElement) {
+                    keyElement.classList.add('pressed');
+                    setTimeout(() => keyElement.classList.remove('pressed'), 150);
+                }
+            }
+
+            startPenalty() {
+                console.log('startPenalty method called successfully!');
+                this.penaltyActive = true;
+                this.penaltyAwaitingResume = false;
+                this.penaltyCounter = Math.floor(Math.random() * 8) + 3;
+                
+                console.log('Penalty counter set to:', this.penaltyCounter);
+                document.getElementById('penaltyCounter').textContent = this.penaltyCounter;
+                document.getElementById('penaltyInstruction').textContent = 'Hit H, J or K to beat the 💩 counter to 0';
+                document.getElementById('penaltyInstruction').className = 'penalty-instruction';
+                document.getElementById('penaltyOverlay').style.display = 'flex';
+                console.log('Penalty overlay should now be visible');
+            }
+
+            endPenalty() {
+                console.log('endPenalty method called successfully!');
+                this.penaltyActive = false;
+                this.penaltyAwaitingResume = false;
+                document.getElementById('penaltyOverlay').style.display = 'none';
+                console.log('Penalty overlay hidden');
+            }
+
+            triggerEvent() {
+                this.gameRunning = false;
+                clearInterval(this.timer);
+                this.lastEventScore = this.score;
+                
+                // Reset any previous event state
+                this.resetEventState();
+                
+                // Add 2 seconds to timer instead of resetting
+                this.currentTime = Math.min(10000, this.currentTime + 2000);
+                
+                // Select random event (exclude current and last two events)
+                let availableEvents = this.events.filter(event => 
+                    event.id !== this.currentEvent && 
+                    event.id !== this.lastEvent && 
+                    event.id !== this.secondLastEvent
+                );
+                
+                // If we don't have enough events available, just exclude current and last
+                if (availableEvents.length < 3) {
+                    availableEvents = this.events.filter(event => 
+                        event.id !== this.currentEvent && 
+                        event.id !== this.lastEvent
+                    );
+                }
+                
+                // If still not enough, use all events
+                if (availableEvents.length === 0) {
+                    availableEvents = this.events;
+                }
+                
+                console.log('Available events for selection:', availableEvents.length);
+                console.log('Excluded events:', this.currentEvent, this.lastEvent, this.secondLastEvent);
+                
+                const randomEvent = availableEvents[Math.floor(Math.random() * availableEvents.length)];
+                
+                // Update event history
+                this.secondLastEvent = this.lastEvent;
+                this.lastEvent = this.currentEvent;
+                this.currentEvent = randomEvent.id;
+                
+                console.log('Selected new event:', this.currentEvent);
+                
+                // Regenerate queue with new event in mind
+                this.initializeGame();
+                
+                // Show event popup
+                document.getElementById('eventDescription').textContent = randomEvent.description;
+                document.getElementById('eventPopup').style.display = 'flex';
+            }
+
+            resetEventState() {
+                this.doubleInputRequired = {};
+                this.penaltyActive = false;
+                this.penaltyCounter = 0;
+                this.penaltyAwaitingResume = false;
+                // Don't reset doubleInputChance here - keep it consistent during the event
+            }
+
+            updateScore() {
+                document.getElementById('score').textContent = this.score;
+                document.getElementById('inputsCount').textContent = this.inputsCount;
+            }
+
+            endGame(reason) {
+                this.gameRunning = false;
+                clearInterval(this.timer);
+                this.stopMusic();
+                
+                document.getElementById('finalScore').textContent = this.score;
+                document.getElementById('gameOverReason').textContent = reason;
+                document.getElementById('gameOver').style.display = 'flex';
+            }
+
+            bindEvents() {
+                document.addEventListener('keydown', (e) => {
+                    const key = e.key.toLowerCase();
+                    
+                    // Handle space bar - check penalty mode first
+                    if (key === ' ') {
+                        e.preventDefault();
+                        
+                        // If in penalty awaiting resume, handle that first
+                        if (this.penaltyAwaitingResume) {
+                            console.log('Space pressed during penalty resume');
+                            this.processInput(' ');
+                            return;
+                        }
+                        
+                        // Otherwise handle UI navigation
+                        if (document.getElementById('startScreen').style.display !== 'none') {
+                            document.getElementById('startBtn').click();
+                        } else if (document.getElementById('eventPopup').style.display === 'flex') {
+                            document.getElementById('eventOkBtn').click();
+                        } else if (document.getElementById('gameOver').style.display === 'flex') {
+                            document.getElementById('restartBtn').click();
+                        }
+                        return;
+                    }
+                    
+                    if (['h', 'j', 'k', 'u'].includes(key)) {
+                        e.preventDefault();
+                        this.processInput(key);
+                    }
+                });
+            }
+
+            start() {
+                // Try to enable music (requires user interaction)
+                this.tryEnableMusic();
+                this.showCountdown();
+            }
+
+            tryEnableMusic() {
+                // Modern browsers require user interaction before playing audio
+                if (this.bgMusic && this.bgMusic.src && !this.musicEnabled) {
+                    this.bgMusic.volume = 0.3; // Set to 30% volume
+                    const playPromise = this.bgMusic.play();
+                    
+                    if (playPromise !== undefined) {
+                        playPromise.then(() => {
+                            this.musicEnabled = true;
+                            console.log('Background music started');
+                        }).catch(error => {
+                            console.log('Could not start background music:', error);
+                            // Music will need to be enabled after user interaction
+                        });
+                    }
+                }
+            }
+
+            stopMusic() {
+                if (this.bgMusic && !this.bgMusic.paused) {
+                    this.bgMusic.pause();
+                    this.bgMusic.currentTime = 0;
+                }
+            }
+
+            showCountdown() {
+                const countdownElement = document.getElementById('countdown');
+                const numberElement = document.getElementById('countdownNumber');
+                let count = 3;
+                
+                countdownElement.style.display = 'flex';
+                numberElement.textContent = count;
+                
+                const countdownInterval = setInterval(() => {
+                    count--;
+                    if (count > 0) {
+                        numberElement.textContent = count;
+                        numberElement.style.animation = 'none';
+                        numberElement.offsetHeight;
+                        numberElement.style.animation = 'countdownPulse 1s ease-in-out';
+                    } else {
+                        numberElement.textContent = 'GO!';
+                        numberElement.style.animation = 'countdownPulse 1s ease-in-out';
+                        
+                        setTimeout(() => {
+                            countdownElement.style.display = 'none';
+                            this.gameRunning = true;
+                            this.startTimer();
+                        }, 1000);
+                        
+                        clearInterval(countdownInterval);
+                    }
+                }, 1000);
+            }
+
+            restart() {
+                this.score = 0;
+                this.inputsCount = 0;
+                this.consecutiveWrong = 0;
+                this.maxTime = 10000;
+                this.currentTime = this.maxTime;
+                this.lastEventScore = 0;
+                this.currentEvent = null;
+                this.lastEvent = null;
+                this.secondLastEvent = null;
+                this.penaltyActive = false;
+                this.penaltyCounter = 0;
+                this.penaltyAwaitingResume = false;
+                this.doubleInputChance = 0.5;
+                this.doubleInputRequired = {};
+                this.queue = [];
+                
+                this.initializeGame();
+                this.updateScore();
+                this.start();
+            }
+        }
+
+        let game;
+
+        function startGame() {
+            document.getElementById('startScreen').style.display = 'none';
+            document.getElementById('gameScreen').style.display = 'block';
+            
+            game = new RhythmGame();
+            console.log('Game created:', game);
+            console.log('startPenalty method:', typeof game.startPenalty);
+            game.start();
+        }
+
+        function restartGame() {
+            document.getElementById('gameOver').style.display = 'none';
+            game.restart();
+        }
+
+        function closeEventPopup() {
+            document.getElementById('eventPopup').style.display = 'none';
+            game.showCountdown();
+        }
+
+        function testPenalty() {
+            console.log('TEST PENALTY button clicked');
+            if (typeof game !== 'undefined' && game) {
+                console.log('Game object exists:', game);
+                console.log('startPenalty method exists:', typeof game.startPenalty);
+                if (typeof game.startPenalty === 'function') {
+                    console.log('Calling startPenalty...');
+                    game.startPenalty();
+                } else {
+                    console.error('startPenalty is not a function on game object');
+                }
+            } else {
+                console.error('Game not started yet!');
+            }
+        }
+
+        function testEvent() {
+            console.log('TEST EVENT button clicked');
+            const selector = document.getElementById('eventSelector');
+            const selectedEvent = selector.value;
+            
+            if (!selectedEvent) {
+                console.log('No event selected');
+                return;
+            }
+            
+            if (typeof game !== 'undefined' && game && game.gameRunning) {
+                console.log('Testing event:', selectedEvent);
+                
+                // Reset event state before applying new event
+                game.resetEventState();
+                
+                // Apply the selected event
+                game.currentEvent = selectedEvent;
+                
+                // For double input, ensure the chance is set
+                if (selectedEvent === 'double_input') {
+                    game.doubleInputChance = 0.3 + (Math.random() * 0.5); // 30-80%
+                    console.log('Manually set double input chance to:', game.doubleInputChance.toFixed(2));
+                }
+                
+                game.initializeGame(); // Regenerate queue with new event
+                console.log('Event applied successfully:', selectedEvent);
+                
+                // Log current queue double input status
+                if (selectedEvent === 'double_input') {
+                    const doubleCount = game.queue.filter(item => item.requiresDoubleInput).length;
+                    console.log('Double input blocks in queue after manual test:', doubleCount, 'out of', game.queue.length);
+                }
+            } else {
+                console.error('Game not running - start the game first!');
+            }
+        }
+    </script>
+</body>
+</html>
